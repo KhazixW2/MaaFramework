@@ -1,6 +1,7 @@
 import { Context } from './context'
 import { Job, JobSource } from './job'
 import maa from './maa'
+import { DumpTask } from './pipeline'
 import {
     CustomActionCallback,
     CustomActionSelf,
@@ -151,6 +152,19 @@ export class ResourceBase {
         }
     }
 
+    get_node_data(node_name: string) {
+        return maa.resource_get_node_data(this.handle, node_name)
+    }
+
+    get_node_data_parsed(node_name: string) {
+        const content = this.get_node_data(node_name)
+        if (content) {
+            return JSON.parse(content) as DumpTask
+        } else {
+            return null
+        }
+    }
+
     clear() {
         if (!maa.resource_clear(this.handle)) {
             throw 'Resource clear failed'
@@ -174,7 +188,7 @@ export class Resource extends ResourceBase {
     constructor() {
         let ws: WeakRef<this>
         const h = maa.resource_create((message, details_json) => {
-            ws.deref()?.notify(message, details_json)
+            return ws.deref()?.notify(message, details_json)
         })
         if (!h) {
             throw 'Resource create failed'

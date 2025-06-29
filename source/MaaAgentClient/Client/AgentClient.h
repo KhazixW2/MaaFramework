@@ -26,6 +26,8 @@ public: // MaaAgentClient
     virtual bool connect() override;
     virtual bool disconnect() override;
     virtual bool connected() override;
+    virtual bool alive() override;
+    virtual void set_timeout(const std::chrono::milliseconds& timeout) override;
 
 private: // Transceiver
     virtual bool handle_inserted_request(const json::value& j) override;
@@ -36,6 +38,7 @@ private:
     bool handle_context_run_action(const json::value& j);
     bool handle_context_override_pipeline(const json::value& j);
     bool handle_context_override_next(const json::value& j);
+    bool handle_context_get_node_data(const json::value& j);
     bool handle_context_clone(const json::value& j);
     bool handle_context_task_id(const json::value& j);
     bool handle_context_tasker(const json::value& j);
@@ -63,6 +66,7 @@ private:
     bool handle_resource_clear(const json::value& j);
     bool handle_resource_override_pipeline(const json::value& j);
     bool handle_resource_override_next(const json::value& j);
+    bool handle_resource_get_node_data(const json::value& j);
     bool handle_resource_get_hash(const json::value& j);
     bool handle_resource_get_node_list(const json::value& j);
 

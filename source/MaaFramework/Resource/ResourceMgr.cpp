@@ -4,6 +4,7 @@
 
 #include "MLProvider.h"
 #include "MaaFramework/MaaMsg.h"
+#include "PipelineDumper.h"
 #include "Utils/GpuOption.h"
 #include "Utils/Logger.h"
 #include "Utils/Platform.h"
@@ -187,6 +188,17 @@ bool ResourceMgr::override_next(const std::string& node_name, const std::vector<
     LogFunc << VAR(node_name) << VAR(next);
     pipeline_res_.get_pipeline_data_map()[node_name].next = next;
     return true;
+}
+
+std::optional<json::object> ResourceMgr::get_node_data(const std::string& node_name) const
+{
+    const auto& pp_map = pipeline_res_.get_pipeline_data_map();
+    auto it = pp_map.find(node_name);
+    if (it == pp_map.end()) {
+        return std::nullopt;
+    }
+
+    return PipelineDumper::dump(it->second);
 }
 
 void ResourceMgr::register_custom_recognition(const std::string& name, MaaCustomRecognitionCallback recognition, void* trans_arg)

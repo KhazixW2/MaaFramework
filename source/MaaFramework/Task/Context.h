@@ -20,10 +20,6 @@ private:
     };
 
 public:
-    using PipelineData = MAA_RES_NS::PipelineData;
-    using PipelineDataMap = MAA_RES_NS::PipelineResMgr::PipelineDataMap;
-
-public:
     static std::shared_ptr<Context> create(MaaTaskId id, Tasker* tasker);
     std::shared_ptr<Context> getptr();
     std::shared_ptr<const Context> getptr() const;
@@ -42,6 +38,7 @@ public: // from MaaContextAPI
             override;
     virtual bool override_pipeline(const json::object& pipeline_override) override;
     virtual bool override_next(const std::string& name, const std::vector<std::string>& next) override;
+    virtual std::optional<json::object> get_node_data(const std::string& node_name) const override;
 
     virtual Context* clone() const override;
 
@@ -49,7 +46,7 @@ public: // from MaaContextAPI
     virtual Tasker* tasker() const override;
 
 public:
-    std::optional<PipelineData> get_pipeline_data(const std::string& node_name);
+    std::optional<PipelineData> get_pipeline_data(const std::string& node_name) const;
     bool& need_to_stop();
 
 private:

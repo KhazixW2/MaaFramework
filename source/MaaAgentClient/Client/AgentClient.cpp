@@ -116,14 +116,27 @@ bool AgentClient::disconnect()
         return true;
     }
 
-    send_and_recv<ShutDownResponse>(ShutDownRequest {});
+    if (alive()) {
+        send_and_recv<ShutDownResponse>(ShutDownRequest {});
+    }
+
     connected_ = false;
     return true;
 }
 
 bool AgentClient::connected()
 {
-    return connected_ && Transceiver::alive();
+    return connected_;
+}
+
+bool AgentClient::alive()
+{
+    return Transceiver::alive();
+}
+
+void AgentClient::set_timeout(const std::chrono::milliseconds& timeout)
+{
+    Transceiver::set_timeout(timeout);
 }
 
 bool AgentClient::handle_inserted_request(const json::value& j)
@@ -146,6 +159,9 @@ bool AgentClient::handle_inserted_request(const json::value& j)
         return true;
     }
     else if (handle_context_override_next(j)) {
+        return true;
+    }
+    else if (handle_context_get_node_data(j)) {
         return true;
     }
     else if (handle_context_clone(j)) {
@@ -221,6 +237,9 @@ bool AgentClient::handle_inserted_request(const json::value& j)
         return true;
     }
     else if (handle_resource_override_next(j)) {
+        return true;
+    }
+    else if (handle_resource_get_node_data(j)) {
         return true;
     }
     else if (handle_resource_get_hash(j)) {
@@ -406,6 +425,32 @@ bool AgentClient::handle_context_override_next(const json::value& j)
 
     ContextOverrideNextReverseResponse resp {
         .ret = ret,
+    };
+    send(resp);
+
+    return true;
+}
+
+bool AgentClient::handle_context_get_node_data(const json::value& j)
+{
+    if (!j.is<ContextGetNodeDataReverseRequest>()) {
+        return false;
+    }
+
+    const ContextGetNodeDataReverseRequest& req = j.as<ContextGetNodeDataReverseRequest>();
+    LogFunc << VAR(req) << VAR(ipc_addr_);
+
+    MaaContext* context = query_context(req.context_id);
+    if (!context) {
+        LogError << "context not found" << VAR(req.context_id);
+        return false;
+    }
+
+    auto opt = context->get_node_data(req.node_name);
+
+    ContextGetNodeDataReverseResponse resp {
+        .has_value = opt.has_value(),
+        .node_data = opt ? *opt : json::object(),
     };
     send(resp);
 
@@ -998,6 +1043,32 @@ bool AgentClient::handle_resource_override_next(const json::value& j)
     return true;
 }
 
+bool AgentClient::handle_resource_get_node_data(const json::value& j)
+{
+    if (!j.is<ResourceGetNodeDataReverseRequest>()) {
+        return false;
+    }
+
+    const ResourceGetNodeDataReverseRequest& req = j.as<ResourceGetNodeDataReverseRequest>();
+    LogFunc << VAR(req) << VAR(ipc_addr_);
+
+    MaaResource* resource = query_resource(req.resource_id);
+    if (!resource) {
+        LogError << "Resource not found" << VAR(req.resource_id);
+        return false;
+    }
+
+    auto opt = resource->get_node_data(req.node_name);
+
+    ResourceGetNodeDataReverseResponse resp {
+        .has_value = opt.has_value(),
+        .node_data = opt ? *opt : json::object(),
+    };
+    send(resp);
+
+    return true;
+}
+
 bool AgentClient::handle_resource_get_hash(const json::value& j)
 {
     if (!j.is<ResourceGetHashReverseRequest>()) {
@@ -1409,6 +1480,11 @@ MaaBool AgentClient::reco_agent(
 
     if (!image) {
         LogError << "image is null";
+        return false;
+    }
+
+    if (!pthis->alive()) {
+        LogError << "server is not alive" << VAR(pthis->ipc_addr_);
         return false;
     }
 

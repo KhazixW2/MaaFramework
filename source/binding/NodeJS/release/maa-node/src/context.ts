@@ -1,4 +1,5 @@
 import * as maa from './maa'
+import { DumpTask } from './pipeline'
 import { TaskerBase } from './tasker'
 
 export class Context {
@@ -54,9 +55,22 @@ export class Context {
         }
     }
 
-    override_next(name: string, next: string[]) {
-        if (!maa.context_override_next(this.handle, name, next)) {
+    override_next(node_name: string, next: string[]) {
+        if (!maa.context_override_next(this.handle, node_name, next)) {
             throw 'Context override_next failed'
+        }
+    }
+
+    get_node_data(node_name: string) {
+        return maa.context_get_node_data(this.handle, node_name)
+    }
+
+    get_node_data_parsed(node_name: string) {
+        const content = this.get_node_data(node_name)
+        if (content) {
+            return JSON.parse(content) as DumpTask
+        } else {
+            return null
         }
     }
 
